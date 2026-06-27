@@ -13,18 +13,12 @@ datasource db {
   provider = "postgresql"
 }
 
-enum UserRoleEnum {
-  ADMIN
-  USER
-
-  @@map("userroleenum")
-}
-
 model RefreshToken {
   id        BigInt    @id @default(autoincrement())
   token     String    @unique @db.VarChar
   userId    BigInt    @map("user_id")
   rotatedAt DateTime? @map("rotated_at") @db.Timestamptz(6)
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz(6)
 
   user User @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
@@ -34,7 +28,7 @@ model RefreshToken {
 
 model User {
   id            BigInt         @id @default(autoincrement())
-  username      String         @db.VarChar
+  username      String         @unique @db.VarChar
   password      String         @db.VarChar
   avatarUrl     String?        @map("avatar_url") @db.VarChar
   role          UserRoleEnum
@@ -42,4 +36,11 @@ model User {
 
   @@index([id], map: "ix_user_id")
   @@map("user")
+}
+
+enum UserRoleEnum {
+  ADMIN
+  USER
+
+  @@map("userroleenum")
 }

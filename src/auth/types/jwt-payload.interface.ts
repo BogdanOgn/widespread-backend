@@ -7,4 +7,5 @@ export interface JwtPayload {
   sub: number;
   username: string;
   type: TokenType;
+  jti: string;
 }

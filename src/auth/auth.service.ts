@@ -11,10 +11,11 @@ import { JwtService } from '@nestjs/jwt';
 
 import * as bcrypt from 'bcrypt';
 import { Response } from 'express';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 
 import { globalConfig } from '../config/global.config';
 import { jwtConfig } from '../config/jwt.config';
+import { Prisma } from '../generated/prisma/client';
 import { RefreshTokenModel } from '../generated/prisma/models';
 import { PrismaService } from '../prisma/prisma.service';
 import { UserService } from '../user/user.service';
@@ -22,9 +23,6 @@ import { UserService } from '../user/user.service';
 import { LoginUserDto } from './dto/login-user.dto';
 import { RegisterUserDto } from './dto/register-user.dto';
 import { JwtPayload, TokenType } from './types/jwt-payload.interface';
-
-const ACCESS_TOKEN_COOKIE_MAX_AGE_MS = 15 * 60 * 1000;
-const REFRESH_TOKEN_COOKIE_MAX_AGE_MS = 15 * 24 * 60 * 60 * 1000;
 
 @Injectable()
 export class AuthService {
@@ -39,20 +37,23 @@ export class AuthService {
   ) {}
 
   async register(dto: RegisterUserDto) {
-    const existingUser = await this.userService.findByUsername(dto.username);
-
-    if (existingUser) {
-      throw new ConflictException('User already exists');
-    }
-
     const hashedPassword = await bcrypt.hash(
       dto.password,
       this.appConfig.bcrypt.saltRounds,
     );
 
-    const user = await this.userService.create(dto.username, hashedPassword);
-
-    return this.userService.toResponse(user);
+    try {
+      const user = await this.userService.create(dto.username, hashedPassword);
+      return this.userService.toResponse(user);
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException('User already exists');
+      }
+      throw error;
+    }
   }
 
   async login(dto: LoginUserDto, res: Response) {
@@ -99,7 +100,7 @@ export class AuthService {
       throw new BadRequestException('Invalid refresh token');
     }
 
-    let tokenRecord = await this.prismaService.refreshToken.findUnique({
+    const tokenRecord = await this.prismaService.refreshToken.findUnique({
       where: { token: this.hashToken(refreshToken) },
     });
 
@@ -107,14 +108,23 @@ export class AuthService {
       throw new NotFoundException('Refresh token does not exist');
     }
 
-    if (tokenRecord.rotatedAt !== null) {
-      tokenRecord = await this.handleRotatedTokenReuse(tokenRecord);
+    if (tokenRecord.expiresAt < new Date()) {
+      throw new UnauthorizedException('Refresh token expired');
     }
 
-    await this.prismaService.refreshToken.update({
-      where: { id: tokenRecord.id },
+    const activeToken =
+      tokenRecord.rotatedAt !== null
+        ? await this.handleRotatedTokenReuse(tokenRecord)
+        : tokenRecord;
+
+    const claimed = await this.prismaService.refreshToken.updateMany({
+      where: { id: activeToken.id, rotatedAt: null },
       data: { rotatedAt: new Date() },
     });
+
+    if (claimed.count === 0) {
+      throw new UnauthorizedException('Refresh token already used');
+    }
 
     return this.issueTokens(res, payload.sub, payload.username);
   }
@@ -159,22 +169,36 @@ export class AuthService {
       this.jwtConfiguration.refreshTokenTtlSeconds,
     );
 
-    await this.prismaService.refreshToken.create({
-      data: { userId, token: this.hashToken(refreshToken) },
+    const refreshTokenExpiresAt = new Date(
+      Date.now() + this.jwtConfiguration.refreshTokenTtlSeconds * 1000,
+    );
+
+    await this.prismaService.refreshToken.deleteMany({
+      where: { userId, expiresAt: { lt: new Date() } },
     });
+
+    await this.prismaService.refreshToken.create({
+      data: {
+        userId,
+        token: this.hashToken(refreshToken),
+        expiresAt: refreshTokenExpiresAt,
+      },
+    });
+
+    const secure = this.appConfig.isProduction;
 
     res.cookie('refresh_token', refreshToken, {
       httpOnly: true,
-      secure: false,
+      secure,
       sameSite: 'lax',
-      maxAge: REFRESH_TOKEN_COOKIE_MAX_AGE_MS,
+      maxAge: this.jwtConfiguration.refreshTokenTtlSeconds * 1000,
     });
 
     res.cookie('access_token', accessToken, {
       httpOnly: true,
-      secure: false,
+      secure,
       sameSite: 'lax',
-      maxAge: ACCESS_TOKEN_COOKIE_MAX_AGE_MS,
+      maxAge: this.jwtConfiguration.accessTokenTtlSeconds * 1000,
     });
 
     return { access_token: accessToken, refresh_token: refreshToken };
@@ -186,7 +210,7 @@ export class AuthService {
     type: TokenType,
     expiresIn: number,
   ): string {
-    const payload: JwtPayload = { sub, username, type };
+    const payload: JwtPayload = { sub, username, type, jti: randomUUID() };
     return this.jwtService.sign(payload, { expiresIn });
   }
 
