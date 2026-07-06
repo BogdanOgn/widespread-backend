@@ -20,9 +20,9 @@ model RefreshToken {
   rotatedAt DateTime? @map("rotated_at") @db.Timestamptz(6)
   expiresAt DateTime  @map("expires_at") @db.Timestamptz(6)
 
-  user User @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  @@index([id], map: "ix_refresh_token_id")
+  @@index([userId], map: "ix_refresh_token_user_id")
   @@map("refresh_token")
 }
 
@@ -34,8 +34,58 @@ model User {
   role          UserRoleEnum
   refreshTokens RefreshToken[]
 
-  @@index([id], map: "ix_user_id")
   @@map("user")
+}
+
+model Category {
+  id   BigInt @id @default(autoincrement())
+  name String @db.VarChar(100)
+  slug String @unique @db.VarChar(100)
+
+  products Product[]
+
+  @@map("category")
+}
+
+model Brand {
+  id       BigInt    @id @default(autoincrement())
+  name     String    @db.VarChar(100)
+  slug     String    @unique @db.VarChar(100)
+  products Product[]
+
+  @@map("brand")
+}
+
+model Size {
+  id   BigInt @id @default(autoincrement())
+  name String @db.VarChar(10)
+
+  products Product[]
+
+  @@map("size")
+}
+
+model Product {
+  id          BigInt     @id @default(autoincrement())
+  title       String     @db.VarChar(255)
+  slug        String     @unique @db.VarChar(300)
+  description String
+  price       Decimal    @db.Decimal(10, 2)
+  salePrice   Decimal?   @map("sale_price") @db.Decimal(10, 2)
+  gender      GenderEnum @default(MALE)
+  isPublished Boolean    @default(false) @map("is_published")
+  isArchived  Boolean    @default(false) @map("is_archived")
+
+  categoryId BigInt? @map("category_id")
+  brandId    BigInt? @map("brand_id")
+
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  brand    Brand?    @relation(fields: [brandId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  sizes    Size[]
+
+  @@index([categoryId], map: "ix_product_category_id")
+  @@index([brandId], map: "ix_product_brand_id")
+  @@map("product")
 }
 
 enum UserRoleEnum {
@@ -43,4 +93,11 @@ enum UserRoleEnum {
   USER
 
   @@map("userroleenum")
+}
+
+enum GenderEnum {
+  MALE
+  FEMALE
+
+  @@map("genderenum")
 }

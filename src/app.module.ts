@@ -9,6 +9,10 @@ import { globalConfig } from './config/global.config';
 import { jwtConfig } from './config/jwt.config';
 import { PrismaModule } from './prisma/prisma.module';
 import { UserModule } from './user/user.module';
+import { ProductModule } from './product/product.module';
+import { SizeModule } from './size/size.module';
+import { CategoryModule } from './category/category.module';
+import { BrandModule } from './brand/brand.module';
 
 @Module({
   imports: [
@@ -20,6 +24,10 @@ import { UserModule } from './user/user.module';
     PrismaModule,
     UserModule,
     AuthModule,
+    ProductModule,
+    SizeModule,
+    CategoryModule,
+    BrandModule,
   ],
   controllers: [AppController],
   providers: [AppService],
