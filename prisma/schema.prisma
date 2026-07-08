@@ -79,13 +79,27 @@ model Product {
   categoryId BigInt? @map("category_id")
   brandId    BigInt? @map("brand_id")
 
-  category Category? @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  brand    Brand?    @relation(fields: [brandId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  category Category?      @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  brand    Brand?         @relation(fields: [brandId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   sizes    Size[]
+  images   ProductImage[]
 
   @@index([categoryId], map: "ix_product_category_id")
   @@index([brandId], map: "ix_product_brand_id")
   @@map("product")
+}
+
+model ProductImage {
+  id        BigInt  @id @default(autoincrement())
+  productId BigInt  @map("product_id")
+  url       String  @db.VarChar(500)
+  alt       String? @db.VarChar(255)
+  order     Int     @default(0)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([productId], map: "ix_product_image_product_id")
+  @@map("product_image")
 }
 
 enum UserRoleEnum {

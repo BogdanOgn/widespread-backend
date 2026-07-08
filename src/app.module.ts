@@ -13,6 +13,8 @@ import { ProductModule } from './product/product.module';
 import { SizeModule } from './size/size.module';
 import { CategoryModule } from './category/category.module';
 import { BrandModule } from './brand/brand.module';
+import { ProductImageModule } from './product-image/product-image.module';
+import { UploadModule } from './upload/upload.module';
 
 @Module({
   imports: [
@@ -28,6 +30,8 @@ import { BrandModule } from './brand/brand.module';
     SizeModule,
     CategoryModule,
     BrandModule,
+    ProductImageModule,
+    UploadModule,
   ],
   controllers: [AppController],
   providers: [AppService],
