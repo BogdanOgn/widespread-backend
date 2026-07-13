@@ -10,6 +10,8 @@ import { CategoryService } from '../category/category.service';
 import { Prisma } from '../generated/prisma/client';
 import { GenderEnum } from '../generated/prisma/enums';
 import { ProductGetPayload } from '../generated/prisma/models';
+import { Language } from '../i18n/language.enum';
+import { DEFAULT_LANGUAGE } from '../i18n/resolve-language';
 import { PrismaService } from '../prisma/prisma.service';
 import { SizeService } from '../size/size.service';
 
@@ -52,7 +54,10 @@ export class ProductService {
 		private readonly sizeService: SizeService,
 	) {}
 
-	async create(dto: CreateProductDto): Promise<ResponseProductDto> {
+	async create(
+		dto: CreateProductDto,
+		lang: Language = DEFAULT_LANGUAGE,
+	): Promise<ResponseProductDto> {
 		this.assertValidPricing(dto.price, dto.sale_price);
 
 		if (dto.category_id !== undefined && dto.category_id !== null) {
@@ -88,15 +93,21 @@ export class ProductService {
 			}),
 		);
 
-		return this.toResponse(product);
+		return this.toResponse(product, lang);
 	}
 
-	async findOne(id: number): Promise<ResponseProductDto> {
+	async findOne(
+		id: number,
+		lang: Language = DEFAULT_LANGUAGE,
+	): Promise<ResponseProductDto> {
 		const product = await this.getOrThrow(id);
-		return this.toResponse(product);
+		return this.toResponse(product, lang);
 	}
 
-	async findAll(filters: FiltersProductDto): Promise<ListResponseProductDto> {
+	async findAll(
+		filters: FiltersProductDto,
+		lang: Language = DEFAULT_LANGUAGE,
+	): Promise<ListResponseProductDto> {
 		const page = filters.page ?? 1;
 		const pageSize = filters.page_size ?? 10;
 
@@ -114,7 +125,7 @@ export class ProductService {
 		]);
 
 		return {
-			items: products.map((product) => this.toResponse(product)),
+			items: products.map((product) => this.toResponse(product, lang)),
 			total,
 			page,
 			page_size: pageSize,
@@ -122,7 +133,11 @@ export class ProductService {
 		};
 	}
 
-	async update(id: number, dto: UpdateProductDto): Promise<ResponseProductDto> {
+	async update(
+		id: number,
+		dto: UpdateProductDto,
+		lang: Language = DEFAULT_LANGUAGE,
+	): Promise<ResponseProductDto> {
 		const existing = await this.getOrThrow(id);
 
 		const effectivePrice = dto.price ?? Number(existing.price);
@@ -170,7 +185,7 @@ export class ProductService {
 			}),
 		);
 
-		return this.toResponse(product);
+		return this.toResponse(product, lang);
 	}
 
 	async remove(id: number): Promise<void> {
@@ -267,7 +282,10 @@ export class ProductService {
 		}
 	}
 
-	private toResponse(product: ProductWithRelations): ResponseProductDto {
+	private toResponse(
+		product: ProductWithRelations,
+		lang: Language = DEFAULT_LANGUAGE,
+	): ResponseProductDto {
 		const gender = ENUM_TO_GENDER[product.gender];
 
 		return {
@@ -279,11 +297,11 @@ export class ProductService {
 				product.salePrice !== null ? Number(product.salePrice) : undefined,
 			slug: product.slug,
 			gender,
-			gender_label: genderLabel(gender),
+			gender_label: genderLabel(gender, lang),
 			is_published: product.isPublished,
 			is_archived: product.isArchived,
 			category: product.category
-				? this.categoryService.toResponse(product.category)
+				? this.categoryService.toResponse(product.category, lang)
 				: null,
 			brand: product.brand ? this.brandService.toResponse(product.brand) : null,
 			sizes: product.sizes.map((size) => this.sizeService.toResponse(size)),

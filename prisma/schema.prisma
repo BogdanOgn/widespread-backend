@@ -38,9 +38,10 @@ model User {
 }
 
 model Category {
-  id   BigInt @id @default(autoincrement())
-  name String @db.VarChar(100)
-  slug String @unique @db.VarChar(100)
+  id     BigInt @id @default(autoincrement())
+  nameRu String @map("name_ru") @db.VarChar(100)
+  nameEn String @map("name_en") @db.VarChar(100)
+  slug   String @unique @db.VarChar(100)
 
   products Product[]
 

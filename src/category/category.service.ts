@@ -6,6 +6,8 @@ import {
 
 import { Prisma } from '../generated/prisma/client';
 import { CategoryModel } from '../generated/prisma/models';
+import { Language } from '../i18n/language.enum';
+import { DEFAULT_LANGUAGE } from '../i18n/resolve-language';
 import { PrismaService } from '../prisma/prisma.service';
 
 import { CreateCategoryDto } from './dto/create-category.dto';
@@ -16,33 +18,42 @@ import { UpdateCategoryDto } from './dto/update-category.dto';
 export class CategoryService {
 	constructor(private readonly prismaService: PrismaService) {}
 
-	async create(dto: CreateCategoryDto): Promise<ResponseCategoryDto> {
+	async create(
+		dto: CreateCategoryDto,
+		lang: Language = DEFAULT_LANGUAGE,
+	): Promise<ResponseCategoryDto> {
 		const category = await this.prismaService.category.create({
-			data: { name: dto.name, slug: dto.slug },
+			data: { nameRu: dto.name_ru, nameEn: dto.name_en, slug: dto.slug },
 		});
-		return this.toResponse(category);
+		return this.toResponse(category, lang);
 	}
 
-	async findAll(): Promise<ResponseCategoryDto[]> {
+	async findAll(
+		lang: Language = DEFAULT_LANGUAGE,
+	): Promise<ResponseCategoryDto[]> {
 		const categories = await this.prismaService.category.findMany();
-		return categories.map((category) => this.toResponse(category));
+		return categories.map((category) => this.toResponse(category, lang));
 	}
 
-	async findOne(id: number): Promise<ResponseCategoryDto> {
+	async findOne(
+		id: number,
+		lang: Language = DEFAULT_LANGUAGE,
+	): Promise<ResponseCategoryDto> {
 		const category = await this.getOrThrow(id);
-		return this.toResponse(category);
+		return this.toResponse(category, lang);
 	}
 
 	async update(
 		id: number,
 		dto: UpdateCategoryDto,
+		lang: Language = DEFAULT_LANGUAGE,
 	): Promise<ResponseCategoryDto> {
 		await this.getOrThrow(id);
 		const category = await this.prismaService.category.update({
 			where: { id },
-			data: { name: dto.name, slug: dto.slug },
+			data: { nameRu: dto.name_ru, nameEn: dto.name_en, slug: dto.slug },
 		});
-		return this.toResponse(category);
+		return this.toResponse(category, lang);
 	}
 
 	async remove(id: number): Promise<void> {
@@ -75,10 +86,13 @@ export class CategoryService {
 		return category;
 	}
 
-	toResponse(category: CategoryModel): ResponseCategoryDto {
+	toResponse(
+		category: CategoryModel,
+		lang: Language = DEFAULT_LANGUAGE,
+	): ResponseCategoryDto {
 		return {
 			id: Number(category.id),
-			name: category.name,
+			name: lang === Language.EN ? category.nameEn : category.nameRu,
 			slug: category.slug,
 		};
 	}
