@@ -20,6 +20,7 @@ import { FiltersProductDto } from './dto/filters-product.dto';
 import { ListResponseProductDto } from './dto/list-response-product.dto';
 import { ResponseProductDto } from './dto/response-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { ResponseProductImageDto } from '../product-image/dto/response-product-image.dto';
 import { Gender } from './enums/gender.enum';
 import { ProductSortField } from './enums/product-sort-field.enum';
 import { SortOrder } from './enums/sort-order.enum';
@@ -39,6 +40,7 @@ const PRODUCT_INCLUDE = {
 	category: true,
 	brand: true,
 	sizes: true,
+	images: { orderBy: { order: 'asc' } },
 } satisfies Prisma.ProductInclude;
 
 type ProductWithRelations = ProductGetPayload<{
@@ -305,6 +307,19 @@ export class ProductService {
 				: null,
 			brand: product.brand ? this.brandService.toResponse(product.brand) : null,
 			sizes: product.sizes.map((size) => this.sizeService.toResponse(size)),
+			images: product.images.map((image) => this.toImageResponse(image)),
+		};
+	}
+
+	private toImageResponse(
+		image: ProductWithRelations['images'][number],
+	): ResponseProductImageDto {
+		return {
+			id: Number(image.id),
+			product_id: Number(image.productId),
+			url: image.url,
+			alt: image.alt,
+			order: image.order,
 		};
 	}
 }

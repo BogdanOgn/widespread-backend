@@ -9,6 +9,7 @@ import {
 
 import { ResponseBrandDto } from '../../brand/dto/response-brand.dto';
 import { ResponseCategoryDto } from '../../category/dto/response-category.dto';
+import { ResponseProductImageDto } from '../../product-image/dto/response-product-image.dto';
 import { ResponseSizeDto } from '../../size/dto/response-size.dto';
 import { Gender } from '../enums/gender.enum';
 
@@ -55,4 +56,8 @@ export class ResponseProductDto {
 	@Type(() => ResponseSizeDto)
 	@IsOptional()
 	sizes?: ResponseSizeDto[];
+
+	@Type(() => ResponseProductImageDto)
+	@IsOptional()
+	images?: ResponseProductImageDto[];
 }
