@@ -27,6 +27,11 @@ export class ProductController {
 		return this.productService.create(dto, lang);
 	}
 
+	@Get('stats')
+	getStats(@Lang() lang: Language) {
+		return this.productService.getStats(lang);
+	}
+
 	@Get(':id')
 	findOne(@Param('id', ParseIntPipe) id: number, @Lang() lang: Language) {
 		return this.productService.findOne(id, lang);

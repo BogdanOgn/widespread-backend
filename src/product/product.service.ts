@@ -25,6 +25,7 @@ import { Gender } from './enums/gender.enum';
 import { ProductSortField } from './enums/product-sort-field.enum';
 import { SortOrder } from './enums/sort-order.enum';
 import { genderLabel } from './gender-label';
+import { ResponseProductStatsDto } from './dto/response-product-stats.dto';
 
 const GENDER_TO_ENUM: Record<Gender, GenderEnum> = {
 	[Gender.MALE]: GenderEnum.MALE,
@@ -46,6 +47,15 @@ const PRODUCT_INCLUDE = {
 type ProductWithRelations = ProductGetPayload<{
 	include: typeof PRODUCT_INCLUDE;
 }>;
+
+const PRICE_BUCKETS: ReadonlyArray<[number, number | null]> = [
+	[0, 50],
+	[50, 100],
+	[100, 200],
+	[200, 500],
+	[500, 1000],
+	[1000, null],
+];
 
 @Injectable()
 export class ProductService {
@@ -132,6 +142,110 @@ export class ProductService {
 			page,
 			page_size: pageSize,
 			pages: total > 0 ? Math.ceil(total / pageSize) : 0,
+		};
+	}
+
+	async getStats(
+		lang: Language = DEFAULT_LANGUAGE,
+	): Promise<ResponseProductStatsDto> {
+		const [
+			total,
+			published,
+			archived,
+			drafts,
+			onSale,
+			priceAgg,
+			male,
+			female,
+			bucketCounts,
+			categoryGroups,
+			brandGroups,
+		] = await Promise.all([
+			this.prisma.product.count(),
+			this.prisma.product.count({ where: { isPublished: true } }),
+			this.prisma.product.count({ where: { isArchived: true } }),
+			this.prisma.product.count({
+				where: { isPublished: false, isArchived: false },
+			}),
+			this.prisma.product.count({ where: { salePrice: { not: null } } }),
+			this.prisma.product.aggregate({
+				_min: { price: true },
+				_max: { price: true },
+				_avg: { price: true },
+			}),
+			this.prisma.product.count({ where: { gender: GenderEnum.MALE } }),
+			this.prisma.product.count({ where: { gender: GenderEnum.FEMALE } }),
+			Promise.all(
+				PRICE_BUCKETS.map(([from, to]) =>
+					this.prisma.product.count({
+						where: {
+							price: to === null ? { gte: from } : { gte: from, lt: to },
+						},
+					}),
+				),
+			),
+			this.prisma.product.groupBy({
+				by: ['categoryId'],
+				where: { categoryId: { not: null } },
+				_count: { _all: true },
+			}),
+			this.prisma.product.groupBy({
+				by: ['brandId'],
+				where: { brandId: { not: null } },
+				_count: { _all: true },
+			}),
+		]);
+
+		const categories = await this.prisma.category.findMany({
+			where: { id: { in: categoryGroups.map((g) => g.categoryId!) } },
+		});
+		const byCategory = categoryGroups
+			.map((g) => {
+				const category = categories.find((c) => c.id === g.categoryId)!;
+				return {
+					id: Number(category.id),
+					name: lang === Language.EN ? category.nameEn : category.nameRu,
+					count: g._count._all,
+				};
+			})
+			.sort((a, b) => b.count - a.count);
+
+		const brands = await this.prisma.brand.findMany({
+			where: { id: { in: brandGroups.map((g) => g.brandId!) } },
+		});
+		const byBrand = brandGroups
+			.map((g) => {
+				const brand = brands.find((b) => b.id === g.brandId)!;
+				return {
+					id: Number(brand.id),
+					name: brand.name,
+					count: g._count._all,
+				};
+			})
+			.sort((a, b) => b.count - a.count);
+
+		return {
+			total,
+			published,
+			archived,
+			drafts,
+			on_sale: onSale,
+			price: {
+				min: priceAgg._min.price !== null ? Number(priceAgg._min.price) : null,
+				max: priceAgg._max.price !== null ? Number(priceAgg._max.price) : null,
+				avg:
+					priceAgg._avg.price !== null
+						? Math.round(Number(priceAgg._avg.price) * 100) / 100
+						: null,
+			},
+			by_category: byCategory,
+			by_brand: byBrand,
+			by_gender: { male, female },
+			price_buckets: PRICE_BUCKETS.map(([from, to], i) => ({
+				from,
+				to,
+				count: bucketCounts[i],
+			})),
 		};
 	}
 
