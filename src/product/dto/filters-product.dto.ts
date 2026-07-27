@@ -1,3 +1,5 @@
+import { ApiPropertyOptional } from '@nestjs/swagger';
+
 import { Transform, Type } from 'class-transformer';
 import {
 	IsArray,
@@ -27,64 +29,77 @@ const toIntArray = ({ value }: { value: unknown }): number[] | undefined => {
 };
 
 export class FiltersProductDto {
+	@ApiPropertyOptional()
 	@IsOptional()
 	@IsString()
 	search?: string;
 
+	@ApiPropertyOptional()
 	@IsOptional()
 	@Type(() => Number)
 	@IsInt()
 	category_id?: number;
 
+	@ApiPropertyOptional()
 	@IsOptional()
 	@Type(() => Number)
 	@IsInt()
 	brand_id?: number;
 
+	@ApiPropertyOptional({ enum: Gender })
 	@IsOptional()
 	@IsEnum(Gender)
 	gender?: Gender;
 
+	@ApiPropertyOptional()
 	@IsOptional()
 	@Transform(toBoolean)
 	@IsBoolean()
 	is_published?: boolean;
 
+	@ApiPropertyOptional()
 	@IsOptional()
 	@Transform(toBoolean)
 	@IsBoolean()
 	is_archived?: boolean;
 
+	@ApiPropertyOptional()
 	@IsOptional()
 	@Type(() => Number)
 	@IsNumber()
 	min_price?: number;
 
+	@ApiPropertyOptional()
 	@IsOptional()
 	@Type(() => Number)
 	@IsNumber()
 	max_price?: number;
 
+	@ApiPropertyOptional({ type: [Number] })
 	@IsOptional()
 	@Transform(toIntArray)
 	@IsArray()
 	@IsInt({ each: true })
 	size_ids?: number[];
 
+	@ApiPropertyOptional({ enum: ProductSortField })
 	@IsOptional()
 	@IsEnum(ProductSortField)
 	sort_by?: ProductSortField;
 
+	@ApiPropertyOptional({ enum: SortOrder })
 	@IsOptional()
 	@IsEnum(SortOrder)
 	order?: SortOrder;
 
+	@ApiPropertyOptional({ minimum: 1 })
 	@IsOptional()
 	@Type(() => Number)
 	@IsInt()
 	@Min(1)
 	page?: number;
 
+	@ApiPropertyOptional({ minimum: 1, maximum: 100 })
 	@IsOptional()
 	@Type(() => Number)
 	@IsInt()

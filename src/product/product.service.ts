@@ -13,19 +13,19 @@ import { ProductGetPayload } from '../generated/prisma/models';
 import { Language } from '../i18n/language.enum';
 import { DEFAULT_LANGUAGE } from '../i18n/resolve-language';
 import { PrismaService } from '../prisma/prisma.service';
+import { ResponseProductImageDto } from '../product-image/dto/response-product-image.dto';
 import { SizeService } from '../size/size.service';
 
 import { CreateProductDto } from './dto/create-product.dto';
 import { FiltersProductDto } from './dto/filters-product.dto';
 import { ListResponseProductDto } from './dto/list-response-product.dto';
+import { ResponseProductStatsDto } from './dto/response-product-stats.dto';
 import { ResponseProductDto } from './dto/response-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { ResponseProductImageDto } from '../product-image/dto/response-product-image.dto';
 import { Gender } from './enums/gender.enum';
 import { ProductSortField } from './enums/product-sort-field.enum';
 import { SortOrder } from './enums/sort-order.enum';
 import { genderLabel } from './gender-label';
-import { ResponseProductStatsDto } from './dto/response-product-stats.dto';
 
 const GENDER_TO_ENUM: Record<Gender, GenderEnum> = {
 	[Gender.MALE]: GenderEnum.MALE,

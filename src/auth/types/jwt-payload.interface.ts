@@ -1,11 +1,11 @@
 export enum TokenType {
-  ACCESS = 'access_token',
-  REFRESH = 'refresh_token',
+	ACCESS = 'access_token',
+	REFRESH = 'refresh_token',
 }
 
 export interface JwtPayload {
-  sub: number;
-  username: string;
-  type: TokenType;
-  jti: string;
+	sub: number;
+	username: string;
+	type: TokenType;
+	jti: string;
 }

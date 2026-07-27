@@ -1,5 +1,5 @@
 export enum ProductSortField {
-  ID = 'id',
-  TITLE = 'title',
-  PRICE = 'price',
+	ID = 'id',
+	TITLE = 'title',
+	PRICE = 'price',
 }

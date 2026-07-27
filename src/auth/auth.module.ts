@@ -11,17 +11,17 @@ import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 
 @Module({
-  imports: [
-    UserModule,
-    PassportModule,
-    JwtModule.registerAsync({
-      inject: [jwtConfig.KEY],
-      useFactory: (config: ConfigType<typeof jwtConfig>) => ({
-        secret: config.secret,
-      }),
-    }),
-  ],
-  controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
+	imports: [
+		UserModule,
+		PassportModule,
+		JwtModule.registerAsync({
+			inject: [jwtConfig.KEY],
+			useFactory: (config: ConfigType<typeof jwtConfig>) => ({
+				secret: config.secret,
+			}),
+		}),
+	],
+	controllers: [AuthController],
+	providers: [AuthService, JwtStrategy],
 })
 export class AuthModule {}
